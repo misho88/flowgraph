@@ -32,7 +32,7 @@ class Window(QMainWindow, Stateful):
 
         vbox = VBox()
         vbox.add(self._editor)
-        vbox.add(QLineEdit())
+        #vbox.add(QLineEdit())
         self.setCentralWidget(vbox)
 
         file, edit = self.populate_menu_bar('&File', '&Edit')
@@ -49,7 +49,7 @@ class Window(QMainWindow, Stateful):
             ('&Clear' , None               , scene.removeAll          ),
         ], wrap=ignore_args & with_error_message)
 
-        if state_file is not None:
+        if state_file is not None and state_file.exists():
             self.loadState(force_dialog=False)
 
     def updateTitle(self):
