@@ -2,7 +2,7 @@ __all__ = 'Stateful',
 
 from .backend import QApplication
 from debug import debug
-from json import loads, dumps
+from json import dumps
 
 
 class Stateful:
@@ -64,5 +64,5 @@ class Stateful:
         return dumps(self.state())
 
     def toClipboard(self):
-        clipboard = QApplication.instance().clipboard()
+        clipboard = QApplication.instance().clipboard()  # type: ignore
         clipboard.setText(self.json())

@@ -2,7 +2,7 @@ __all__ = 'Item', 'Input', 'Output'
 
 
 from debug import debug
-from .backend import Qt, QPainter, QRectF, QWidget, QWheelEvent, get_pen, get_brush, QMouseEvent, QFrame, QContextMenuEvent, QMenu, QAction, QGraphicsItem, QGraphicsTextItem, QPainterPath, QGraphicsProxyWidget, QLabel, QLineEdit, QSlider, QDoubleSpinBox, QSpinBox, QPointF, with_error_message
+from .backend import QPainter, QRectF, get_pen, get_brush, QMenu, QGraphicsItem, QPointF, with_error_message
 from . import edge
 from .util import partial
 from .stateful import Stateful
@@ -12,9 +12,9 @@ class Item(QGraphicsItem, Stateful):
     def __init__(self, entry=None):
         super().__init__()
         self.setFlags(
-            QGraphicsItem.ItemIsSelectable |
-            QGraphicsItem.ItemIgnoresParentOpacity |
-            QGraphicsItem.ItemSendsScenePositionChanges
+            QGraphicsItem.GraphicsItemFlag.ItemIsSelectable |
+            QGraphicsItem.GraphicsItemFlag.ItemIgnoresParentOpacity |
+            QGraphicsItem.GraphicsItemFlag.ItemSendsScenePositionChanges  # type: ignore
         )
         self._state = dict(
             width=20,
@@ -38,8 +38,8 @@ class Item(QGraphicsItem, Stateful):
         parent = self.parentItem()
         assert parent is not None
 
-        painter.setPen(get_pen(parent._state['border']['color']))
-        painter.setBrush(get_brush(parent._state['border']['color']))
+        painter.setPen(get_pen(parent._state['border']['color']))  # type: ignore
+        painter.setBrush(get_brush(parent._state['border']['color']))  # type: ignore
         r = self._state['radius']
         painter.drawEllipse(QPointF(0, 0), r, r)
 
@@ -49,7 +49,7 @@ class Item(QGraphicsItem, Stateful):
         return super().itemChange(change, value)
 
     def contextMenuEvent(self, event):
-        Menu(self).exec(event.globalPos())
+        Menu(self).exec(event.globalPos())  # type: ignore
 
     def enabled(self):
         return self.isVisible()
@@ -63,6 +63,8 @@ class Item(QGraphicsItem, Stateful):
 
     def setState(self, state, missing='error'):
         state = super().setState(state, missing='return')
+        assert isinstance(state, dict)
+
         rv = {} if missing == 'return' else None
         for key, value in state.items():
             if key == 'enabled':
@@ -81,6 +83,8 @@ class Input(Item):
 
     def setParentItem(self, parent):
         super().setParentItem(parent)
+        assert parent is not None
+
         frame = self.entry().frameGeometry()
         rect = parent.boundingRect()
         pos = parent.mapToItem(self, frame.topLeft())
@@ -108,6 +112,8 @@ class Output(Item):
 
     def setParentItem(self, parent):
         super().setParentItem(parent)
+        assert parent is not None
+
         frame = self.entry().frameGeometry()
         rect = parent.boundingRect()
         pos = parent.mapToItem(self, frame.topLeft())

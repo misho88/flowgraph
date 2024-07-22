@@ -7,14 +7,18 @@ class Box(QWidget):
     def __init__(self, layout: QLayout):
         super().__init__()
         self.show()
-        self.layout = layout
         self.setLayout(layout)
 
+    def layout(self):
+        layout = super().layout()
+        assert layout is not None
+        return layout
+
     def add(self, widget: QWidget):
-        return self.layout.addWidget(widget)
+        return self.layout().addWidget(widget)
 
     def remove(self, widget: QWidget):
-        return self.layout.removeWidget(widget)
+        return self.layout().removeWidget(widget)
 
 
 class HBox(Box):

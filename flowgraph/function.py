@@ -6,7 +6,7 @@ from . import node, entry
 from .constrained import ClampedInt, ClampedFloat
 from .backend import QContextMenuEvent, populate_menu, with_error_message
 from inspect import signature, Parameter
-from .util import get_static_object_from_state, static_object_state, split_at, toggle, ignore_args
+from .util import get_static_object_from_state, static_object_state, split_at, ignore_args
 
 
 def default(param: Parameter):
@@ -62,6 +62,8 @@ class Widget(node.Widget):
         self.eval()
 
     def eval(self):
+        assert self.func is not None
+
         arg_entries, result_entries = split_at(-1 - self.n_actions)(self.entries())
         assert len(arg_entries) == len(self.signature.parameters), f'{arg_entries} != {self.signature.parameters}'
         args = [
@@ -97,6 +99,8 @@ class Widget(node.Widget):
 
     def setState(self, state):
         state = super().setState(state, missing='return')
+        assert isinstance(state, dict)
+
         for key, value in state.items():
             if key == 'function':
                 func = get_static_object_from_state(value)

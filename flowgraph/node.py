@@ -2,11 +2,10 @@ __all__ = 'Item',
 
 
 from debug import debug
-from .backend import Qt, QPainter, QWidget, QRectF, get_pen, get_brush, QMenu, QAction, QGraphicsItem, QPainterPath, QGraphicsProxyWidget, QGroupBox, QVBoxLayout, QPointF, QLineEdit, QContextMenuEvent, QApplication, QKeySequence, populate_menu
+from .backend import Qt, QPainter, QRectF, get_pen, get_brush, QMenu, QGraphicsItem, QPainterPath, QGraphicsProxyWidget, QGroupBox, QVBoxLayout, QPointF, QContextMenuEvent, QKeySequence, populate_menu, with_error_message
 from typing import Any
-from . import entry
 from .entry import Entry
-from .util import partial, ignore_args, get_static_object_from_state
+from .util import get_static_object_from_state, ignore_args
 from .stateful import Stateful
 
 
@@ -15,11 +14,15 @@ class Widget(QGroupBox, Stateful):
         super().__init__(parent=parent)
         if name is not None:
             self.setName(name)
-        #self.setFlat(False)
         self.setLayout(QVBoxLayout())
-        self.setContextMenuPolicy(Qt.DefaultContextMenu)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.DefaultContextMenu)
         self._item = None
         self._state = {}
+
+    def layout(self):
+        layout = super().layout()
+        assert layout is not None
+        return layout
 
     def name(self):
         return self.title()
@@ -72,6 +75,8 @@ class Widget(QGroupBox, Stateful):
 
     def setState(self, state, missing='error'):
         state = Stateful.setState(self, state, missing='return')
+        assert isinstance(state, dict)
+
         returned = {} if missing == 'return' else None
         for key, value in state.items():
             if key == 'name':
@@ -97,10 +102,10 @@ class Item(QGraphicsItem, Stateful):
     def __init__(self, widget: Widget | None = None):
         super().__init__()
         self.setFlags(
-            QGraphicsItem.ItemIsSelectable |
-            QGraphicsItem.ItemIgnoresParentOpacity |
-            QGraphicsItem.ItemSendsScenePositionChanges | 
-            QGraphicsItem.ItemIsMovable
+            QGraphicsItem.GraphicsItemFlag.ItemIsSelectable |
+            QGraphicsItem.GraphicsItemFlag.ItemIgnoresParentOpacity |
+            QGraphicsItem.GraphicsItemFlag.ItemSendsScenePositionChanges |
+            QGraphicsItem.GraphicsItemFlag.ItemIsMovable  # type: ignore
         )
         self.setAcceptHoverEvents(True)
         self._state: dict[str, Any] = dict(
@@ -133,7 +138,7 @@ class Item(QGraphicsItem, Stateful):
         mult = 3 if self.isSelected() else 1
 
         path = QPainterPath()
-        path.setFillRule(Qt.WindingFill)
+        path.setFillRule(Qt.FillRule.WindingFill)
         r = self._state['border']['radius']
         rect = self.boundingRect()
         path.addRoundedRect(rect, r, r)
@@ -153,6 +158,8 @@ class Item(QGraphicsItem, Stateful):
 
     def setState(self, state):
         state = Stateful.setState(self, state, missing='return')
+        assert isinstance(state, dict)
+
         for key, value in state.items():
             if key == 'widget':
                 cls = get_static_object_from_state(value)
@@ -165,18 +172,25 @@ class Item(QGraphicsItem, Stateful):
         return self
 
     def editor(self):
-        return self.scene().editor()
+        return self.scene().editor()  # type: ignore
 
     def remove(self):
-        self.scene().removeNode(self)
+        self.scene().removeNode(self)  # type: ignore
+
+    def scene(self):
+        scene = super().scene()
+        assert scene is not None
+        return scene
 
 
 class Menu(QMenu):
     def __init__(self, widget: Widget):
         super().__init__()
+        item = widget.item()
+        assert isinstance(item, Item), type(item)
         populate_menu(self, [
-            ('&Delete', 'Delete'         , widget.item().remove),
-            ('&Copy'  , QKeySequence.Copy, widget.item().toClipboard),
+            ('&Delete', 'Delete'         , ignore_args(with_error_message(item.remove))),
+            ('&Copy'  , QKeySequence.Copy, ignore_args(with_error_message(item.toClipboard))),
         ])
         #add_input = self.addMenu('&Add Input To')
         #for entry in widget.entries():
@@ -190,3 +204,8 @@ class Proxy(QGraphicsProxyWidget):
     def __init__(self, parent, widget):
         super().__init__(parent=parent)
         self.setWidget(widget)
+
+    def widget(self):
+        widget = super().widget()
+        assert widget is not None
+        return widget

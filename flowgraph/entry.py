@@ -49,12 +49,21 @@ class Entry(Stateful):
         self._name = name
 
     def setToolTip(self, text):
-        raise NotImplementedError
+        raise NotImplementedError(type(self))
 
     def setReadOnly(self, value):
         raise NotImplementedError(type(self))
 
+    def value(self):
+        raise NotImplementedError(type(self))
+
     def setValue(self, value):
+        raise NotImplementedError(type(self))
+
+    def parent(self):
+        raise NotImplementedError(type(self))
+
+    def setParent(self, value):
         raise NotImplementedError(type(self))
 
     def addCallback(self, callback):
@@ -96,6 +105,7 @@ class Entry(Stateful):
 
     def setState(self, state, parent=None, missing='error'):
         state = super().setState(state, missing='return')
+        assert isinstance(state, dict)
         rv = {} if missing == 'return' else None
         for key, value in state.items():
             if key == 'name':
@@ -185,7 +195,7 @@ class Generic(QTextEdit, Entry):
             elif missing == 'error':
                 raise KeyError(next(iter(state)))
             elif missing == 'return':
-                rv[key] = value
+                rv[key] = value  # type: ignore
         return rv
 
 
@@ -210,7 +220,7 @@ class Str(QLineEdit, Entry):
 
 
 class SpinBox(Entry):
-    def __init__(self, name=None, callback=None, default=0, start=None, stop=None, step=None):
+    def __init__(self, name=None, callback=None, default: int | float = 0, start=None, stop=None, step=None):
         if start is not None:
             self.setMinimum(start)
         if stop is not None:
@@ -253,6 +263,28 @@ class SpinBox(Entry):
             else:
                 rest[key] = value
         return super().setState(rest, parent=parent)
+
+    def minimum(self):
+        raise NotImplementedError(type(self))
+
+    def setMinimum(self, value):
+        raise NotImplementedError(type(self))
+
+    def maximum(self):
+        raise NotImplementedError(type(self))
+
+    def setMaximum(self, value):
+        raise NotImplementedError(type(self))
+
+    def singleStep(self):
+        raise NotImplementedError(type(self))
+
+    def setSingleStep(self, value):
+        raise NotImplementedError(type(self))
+
+    @property
+    def valueChanged(self):
+        raise NotImplementedError(type(self))
 
 
 class Int(QSpinBox, SpinBox):

@@ -10,9 +10,9 @@ class Item(QGraphicsItem, Stateful):
     def __init__(self, source=None, sink=None):
         super().__init__()
         self.setFlags(
-            QGraphicsItem.ItemIsSelectable |
-            QGraphicsItem.ItemIgnoresParentOpacity |
-            QGraphicsItem.ItemSendsScenePositionChanges
+            QGraphicsItem.GraphicsItemFlag.ItemIsSelectable |
+            QGraphicsItem.GraphicsItemFlag.ItemIgnoresParentOpacity |
+            QGraphicsItem.GraphicsItemFlag.ItemSendsScenePositionChanges  # type: ignore
         )
         self.setSource(source)
         self.setSink(sink)
@@ -42,7 +42,7 @@ class Item(QGraphicsItem, Stateful):
 
     def paint(self, painter: QPainter, option, widget):
         path = QPainterPath()
-        d = self._state['protrusion']
+        d: int = self._state['protrusion']  # type: ignore
 
         p0 = self.source().mapToItem(self, QPointF(0, 0))
         p3 = QPointF(0, 0)

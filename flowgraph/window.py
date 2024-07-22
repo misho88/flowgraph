@@ -1,8 +1,8 @@
 __all__ = 'Window',
 
-from .backend import QWidget, QMainWindow, QLineEdit, QPushButton, QHBoxLayout, QVBoxLayout, QPoint, populate_menu, QKeySequence, QFileDialog, with_error_message
-from .layout import HBox, VBox
-from . import editor, function
+from .backend import QMainWindow, populate_menu, QKeySequence, QFileDialog, with_error_message
+from .layout import VBox
+from . import editor
 from .util import ignore_args
 from debug import debug
 from pathlib import Path
@@ -14,7 +14,7 @@ from functools import partial
 
 
 class Window(QMainWindow, Stateful):
-    def __init__(self, title=None, functions=(), state_file=None):
+    def __init__(self, title=None, functions=(), state_file: Path | None = None):
         super().__init__()
         self._state = {}
         self.show()

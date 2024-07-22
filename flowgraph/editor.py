@@ -1,6 +1,5 @@
 __all__ = 'View',
 
-
 from debug import debug
 from . import node, function, socket, edge
 from .backend import Qt, QGraphicsView, QGraphicsScene, QPainter, QRectF, QWheelEvent, QFrame, QContextMenuEvent, QMenu, QApplication, QWidget, QTransform, populate_menu, QKeySequence, with_error_message, get_brush
@@ -134,13 +133,13 @@ class Scene(QGraphicsScene, Stateful):
             self.removeNode(node)
 
     def selectedToClipboard(self):
-        clipboard = QApplication.instance().clipboard()
+        clipboard = QApplication.instance().clipboard()  # type: ignore
         nodes = [ n.state() for n in self.selectedNodes() ]
         edges = [ e.state() for e in self.selectedEdges() ]
         clipboard.setText(dumps(dict(nodes=nodes, edges=edges)))
 
     def addFromClipboard(self):
-        clipboard = QApplication.instance().clipboard()
+        clipboard = QApplication.instance().clipboard()  # type: ignore
         state = loads(clipboard.text())
         if set(state.keys()) == { 'nodes', 'edges' }:
             return self.addState(state)
@@ -158,7 +157,7 @@ class View(QGraphicsView, Stateful):
     def __init__(self):
         super().__init__()
         self.setScene(Scene())
-        self.setFocusPolicy(Qt.StrongFocus)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self._state = dict(
             zoom=dict(increment=1.2),
         )
@@ -170,13 +169,18 @@ class View(QGraphicsView, Stateful):
 
         # Set viewport properties
         self.setFrameShape(QFrame.NoFrame)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
         self.setDragMode(QGraphicsView.RubberBandDrag)
         self.setAcceptDrops(True)
-        self.setContextMenuPolicy(Qt.DefaultContextMenu)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.DefaultContextMenu)
         self.functions = []
+
+    def scene(self) -> Scene:
+        scene = super().scene()
+        assert isinstance(scene, Scene)
+        return scene
 
     def transformAsList(self):
         t = self.transform()
@@ -188,7 +192,7 @@ class View(QGraphicsView, Stateful):
 
     def wheelEvent(self, event: QWheelEvent):
         modifiers = event.modifiers()
-        if modifiers & Qt.ShiftModifier:
+        if modifiers & Qt.KeyboardModifier.ShiftModifier:
             incr = self._state['zoom']['increment']  # type: ignore
             if event.angleDelta().y() < 0:
                 incr = 1 / incr
@@ -202,8 +206,8 @@ class View(QGraphicsView, Stateful):
             Menu(self, event).exec(event.globalPos())
             return
         if hasattr(item, 'widget'):
-            item = item.widget()
-        item.contextMenuEvent(event)
+            item = item.widget()  # type: ignore
+        item.contextMenuEvent(event)  # type: ignore
 
     def addNode(self, widget_or_item, pos=None):
         return self.scene().addNode(widget_or_item, self.mapToScene(pos) if pos is not None else None)
@@ -240,8 +244,11 @@ class Menu(QMenu):
         super().__init__()
         pos = event.pos() if event is not None else None
         add = self.addMenu('&Add Function')
+        assert add is not None
         for f in view.functions:
-            add.addAction(f'&{f.__name__}').triggered.connect(ignore_args(partial(add_function, view, f, pos)))
+            action = add.addAction(f'&{f.__name__}')
+            assert action is not None
+            action.triggered.connect(ignore_args(partial(add_function, view, f, pos)))
         populate_menu(self, [
             ('&Delete', 'Delete'         , view.scene().removeSelected     ),
             ('&Copy'  , QKeySequence.Copy, view.scene().selectedToClipboard),
