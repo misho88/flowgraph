@@ -3,7 +3,7 @@ __all__ = 'View',
 
 from debug import debug
 from . import node, function, socket, edge
-from .backend import Qt, QGraphicsView, QGraphicsScene, QPainter, QWheelEvent, QFrame, QContextMenuEvent, QMenu, QApplication, QWidget, QTransform, populate_menu, QKeySequence
+from .backend import Qt, QGraphicsView, QGraphicsScene, QPainter, QRectF, QWheelEvent, QFrame, QContextMenuEvent, QMenu, QApplication, QWidget, QTransform, populate_menu, QKeySequence, with_error_message, get_brush
 from .util import partial, ignore_args, get_static_object_from_state
 from .stateful import Stateful
 from json import loads, dumps
@@ -12,12 +12,13 @@ from json import loads, dumps
 class Scene(QGraphicsScene, Stateful):
     def __init__(self):
         super().__init__()
-        self._state = dict(
-            background=dict(color='black'),
-            grid=dict(size=20, color='gray'),
-        )
+        self._state = {}
         self._dirty = False  # FIXME: something to keep track of whether the thing has been saved or not
         self._nodes = []
+
+    def drawBackground(self, painter: QPainter, rect: QRectF):
+        super().drawBackground(painter, rect)
+        painter.fillRect(rect, get_brush('#3f7f7f7f'))
 
     def nodes(self):
         return self._nodes.copy()
@@ -69,7 +70,7 @@ class Scene(QGraphicsScene, Stateful):
         yield from Stateful.iterState(self)
         yield 'nodes', [ node.state() for node in self.nodes() ]
         yield 'edges', [
-            dict(source=source, sink=sink) 
+            dict(source=source, sink=sink)
             for source, sink, edge in self.edges(with_indices=True)
         ]
 
@@ -229,13 +230,18 @@ class View(QGraphicsView, Stateful):
         return self
 
 
+@with_error_message
+def add_function(view, f, pos):
+    return view.addNode(function.Widget(f), pos)
+
+
 class Menu(QMenu):
     def __init__(self, view: View, event: QContextMenuEvent | None = None):
         super().__init__()
         pos = event.pos() if event is not None else None
         add = self.addMenu('&Add Function')
         for f in view.functions:
-            add.addAction(f'&{f.__name__}').triggered.connect(ignore_args(partial(view.addNode, function.Widget(f), pos)))
+            add.addAction(f'&{f.__name__}').triggered.connect(ignore_args(partial(add_function, view, f, pos)))
         populate_menu(self, [
             ('&Delete', 'Delete'         , view.scene().removeSelected     ),
             ('&Copy'  , QKeySequence.Copy, view.scene().selectedToClipboard),
