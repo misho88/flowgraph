@@ -116,21 +116,21 @@ class Constrained(Clamped, Optioned):
         return (Clamped if isinstance(self.spec, slice) else Optioned).__repr__(self)
 
 
-class ClampedInt(Clamped, int):
+class ClampedInt(int, Clamped):
     ...
 
 
-class ClampedFloat(Clamped, float):
+class ClampedFloat(float, Clamped):
     ...
 
 
-class OptionedInt(Optioned, float):
+class OptionedInt(int, Optioned):
     ...
 
 
-class OptionedFloat(Optioned, float):
+class OptionedFloat(float, Optioned):
     ...
 
 
-class OptionedStr(Optioned, str):
+class OptionedStr(str, Optioned):
     ...
