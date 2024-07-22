@@ -4,8 +4,9 @@ __all__ = 'Widget',
 from debug import debug
 from . import node, entry
 from .constrained import ClampedInt, ClampedFloat
+from .backend import QContextMenuEvent, populate_menu, with_error_message
 from inspect import signature, Parameter
-from .util import get_static_object_from_state, static_object_state, split_at, toggle
+from .util import get_static_object_from_state, static_object_state, split_at, toggle, ignore_args
 
 
 def default(param: Parameter):
@@ -36,10 +37,8 @@ class Widget(node.Widget):
         if no_entries:
             return
 
-        debug('XXX')
         for param in self.signature.parameters.values():
             e = self.createEntry(param)
-            debug(e.name(), param)
             e.input().setEnabled(True)
             if isinstance(e, entry.Generic):
                 e.setLines(1)
@@ -64,7 +63,7 @@ class Widget(node.Widget):
 
     def eval(self):
         arg_entries, result_entries = split_at(-1 - self.n_actions)(self.entries())
-        assert len(arg_entries) == len(self.signature.parameters), f'{len(arg_entries)=} != {len(self.signature.parameters)=}'
+        assert len(arg_entries) == len(self.signature.parameters), f'{arg_entries} != {self.signature.parameters}'
         args = [
             cast(param)(arg_entry.value())
             for arg_entry, param in zip(arg_entries, self.signature.parameters.values())
@@ -107,3 +106,20 @@ class Widget(node.Widget):
             else:
                 raise KeyError(key)
         return self
+
+    def rebuild(self):
+        debug('FIXME', 'the rebuilt entries CANNOT be given new inputs; I have no idea why')
+        self.removeAllEntries()
+        self.n_actions = 0
+        self.setFunction(self.func)
+
+    def contextMenuEvent(self, event: QContextMenuEvent) -> None:
+        Menu(self).exec(event.globalPos())
+
+
+class Menu(node.Menu):
+    def __init__(self, widget: Widget):
+        super().__init__(widget)
+        populate_menu(self, [
+            ('&Rebuild', 'Ctrl+R', ignore_args(with_error_message(widget.rebuild))),
+        ])
