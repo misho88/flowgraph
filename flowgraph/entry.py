@@ -52,10 +52,10 @@ class Entry(Stateful):
         raise NotImplementedError
 
     def setReadOnly(self, value):
-        raise NotImplementedError
+        raise NotImplementedError(type(self))
 
     def setValue(self, value):
-        raise NotImplementedError
+        raise NotImplementedError(type(self))
 
     def addCallback(self, callback):
         self._callbacks.append(callback)
@@ -64,7 +64,11 @@ class Entry(Stateful):
         self._callbacks.remove(callback)
 
     def callbacks(self):
-        return self._callbacks
+        return self._callbacks.copy()
+
+    def removeAllCallbacks(self):
+        for callback in self.callbacks():
+            self.removeCallback(callback)
 
     def setSource(self, source):
         self.unsetSource()
@@ -114,6 +118,13 @@ class Entry(Stateful):
                 rv[key] = value  # type: ignore
         return rv
 
+    def remove(self):
+        parent = self.parent()
+        self.setParent(None)
+        self.unsetSource()
+        self.removeAllCallbacks()
+        parent.layout().removeWidget(self)
+
 
 def read_only(widget: QWidget):
     widget.setReadOnly(True)
@@ -148,8 +159,6 @@ class Generic(QTextEdit, Entry):
         self.valueChanged.disconnect(callback)
 
     def setReadOnly(self, value=True):
-        #if value is not True:
-        #    raise ValueError('Generic must be read-only')
         super().setReadOnly(True)
 
     def setLines(self, n):
@@ -167,12 +176,17 @@ class Generic(QTextEdit, Entry):
         if self.lines() is not None:
             yield 'lines', self.lines()
 
-    def setState(self, state, parent=None):
+    def setState(self, state, parent=None, missing='error'):
         state = super().setState(state, parent=parent, missing='return')
-        if 'lines' in state:
-            self.setLines(state.pop('lines'))
-        if state:
-            raise KeyError(next(iter(state)))
+        rv = {} if missing == 'return' else None
+        for key, value in state.items():
+            if key == 'lines':
+                self.setLines(value)
+            elif missing == 'error':
+                raise KeyError(next(iter(state)))
+            elif missing == 'return':
+                rv[key] = value
+        return rv
 
 
 class Str(QLineEdit, Entry):
@@ -195,56 +209,75 @@ class Str(QLineEdit, Entry):
         self.textChanged.disconnect(callback)
 
 
-class Int(QSpinBox, Entry):
+class SpinBox(Entry):
+    def __init__(self, name=None, callback=None, default=0, start=None, stop=None, step=None):
+        if start is not None:
+            self.setMinimum(start)
+        if stop is not None:
+            self.setMaximum(stop)
+        if step is not None:
+            self.setSingleStep(step)
+
+        # DO THIS LAST:
+        super().__init__(name, callback, default)
+
+    def value(self):  # NOTE: CRITICAL FOR SERIALIZATION
+        return super().value()
+
+    def setValue(self, value):  # NOTE: CRITICAL FOR SERIALIZATION
+        return super().setValue(value)
+
+    def addCallback(self, callback):
+        super().addCallback(callback)
+        self.valueChanged.connect(callback)
+
+    def removeCallback(self, callback):
+        super().removeCallback(callback)
+        self.valueChanged.disconnect(callback)
+
+    def iterState(self):
+        yield from super().iterState()
+        yield 'start', self.minimum()
+        yield 'stop', self.maximum()
+        yield 'step', self.singleStep()
+
+    def setState(self, state, parent=None):
+        rest = {}
+        for key, value in (state.items() if isinstance(state, dict) else state):
+            if key == 'start':
+                self.setMinimum(value)
+            elif key == 'stop':
+                self.setMaximum(value)
+            elif key == 'step':
+                self.setSingleStep(value)
+            else:
+                rest[key] = value
+        return super().setState(rest, parent=parent)
+
+
+class Int(QSpinBox, SpinBox):
     def __init__(self, name=None, callback=None, default=0, start=None, stop=None, step=None):
         QSpinBox.__init__(self)
-        Entry.__init__(self, name, callback, default)
-        if start is not None:
-            self.setMinimum(start)
-        if stop is not None:
-            self.setMaximum(stop)
-        if step is not None:
-            self.setSingleStep(step)
-
-    def value(self):  # NOTE: CRITICAL FOR SERIALIZATION
-        return super().value()
-
-    def setValue(self, value):  # NOTE: CRITICAL FOR SERIALIZATION
-        return super().setValue(value)
-
-    def addCallback(self, callback):
-        super().addCallback(callback)
-        self.valueChanged.connect(callback)
-
-    def removeCallback(self, callback):
-        super().removeCallback(callback)
-        self.valueChanged.disconnect(callback)
+        SpinBox.__init__(self, name=name, callback=callback, default=default, start=start, stop=stop, step=step)
 
 
-class Float(QDoubleSpinBox, Entry):
+class Float(QDoubleSpinBox, SpinBox):
     def __init__(self, name=None, callback=None, default=0.0, start=None, stop=None, step=None):
         QDoubleSpinBox.__init__(self)
-        Entry.__init__(self, name, callback, default)
-        if start is not None:
-            self.setMinimum(start)
-        if stop is not None:
-            self.setMaximum(stop)
+        SpinBox.__init__(self, name=name, callback=callback, default=default, start=start, stop=stop, step=step)
         if step is not None:
-            self.setSingleStep(step)
+            self.setDecimals(len(str(round(step % 1.0, 6))) - 2)
 
-    def value(self):  # NOTE: CRITICAL FOR SERIALIZATION
-        return super().value()
+    def iterState(self):
+        yield from super().iterState()
+        yield 'decimals', self.decimals()
 
-    def setValue(self, value):  # NOTE: CRITICAL FOR SERIALIZATION
-        return super().setValue(value)
-
-    def addCallback(self, callback):
-        super().addCallback(callback)
-        self.valueChanged.connect(callback)
-
-    def removeCallback(self, callback):
-        super().removeCallback(callback)
-        self.valueChanged.disconnect(callback)
+    def setState(self, state, parent=None):
+        rest = {}
+        for key, value in (state.items() if isinstance(state, dict) else state):
+            if key == 'decimals':
+                self.setDecimals(value)
+        return super().setState(rest, parent=parent)
 
 
 class Button(QPushButton, Entry):
@@ -285,6 +318,9 @@ class Button(QPushButton, Entry):
         self.setToolTip(name if name is not None else '')
         self._name = name
         self.setText(name)
+
+    def setReadOnly(self, value=True):
+        pass
 
 
 class ToggleButton(Button):
