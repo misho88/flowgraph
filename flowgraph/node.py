@@ -31,6 +31,14 @@ class Widget(QGroupBox, Stateful):
         widget.setParent(self)
         return self.layout().addWidget(widget)
 
+    def removeEntry(self, widget):
+        widget.remove()
+        del widget
+
+    def removeAllEntries(self):
+        for entry in self.entries():
+            self.removeEntry(entry)
+
     def entries(self):
         return [ c for c in self.children() if isinstance(c, Entry) ]
 
@@ -96,8 +104,8 @@ class Item(QGraphicsItem, Stateful):
         )
         self.setAcceptHoverEvents(True)
         self._state: dict[str, Any] = dict(
-            background=dict(color='#7f111111'),
-            border=dict(color='white', padding=4, width=1, radius=4),
+            background=dict(color='#3f7f7f7f'),
+            border=dict(color='#bf7f7f7f', padding=4, width=1, radius=4),
         )
         self.Proxy: Proxy | None
         self.setZValue(1)
@@ -160,7 +168,7 @@ class Item(QGraphicsItem, Stateful):
         return self.scene().editor()
 
     def remove(self):
-        self.scene().removeItem(self)
+        self.scene().removeNode(self)
 
 
 class Menu(QMenu):
