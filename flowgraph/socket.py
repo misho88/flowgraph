@@ -124,7 +124,7 @@ def connect(item):
     scene = item.scene()
     sockets = [ item for item in scene.selectedItems() if isinstance(item, Item) ]
     if not sockets:
-        debug('no selected sockets')
+        raise RuntimeError('no sockets selected')
         return
     if not isinstance(item, Output):
         source = sockets[-1].entry()

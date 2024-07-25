@@ -19,6 +19,14 @@ class Widget(QGroupBox, Stateful):
         self._item = None
         self._state = {}
 
+        self._errored = False
+
+    def errored(self):
+        return self._errored
+
+    def setErrrored(self, value=True):
+        self._errored = value
+
     def layout(self):
         layout = super().layout()
         assert layout is not None
@@ -110,7 +118,7 @@ class Item(QGraphicsItem, Stateful):
         self.setAcceptHoverEvents(True)
         self._state: dict[str, Any] = dict(
             background=dict(color='#3f7f7f7f'),
-            border=dict(color='#bf7f7f7f', padding=4, width=1, radius=4),
+            border=dict(color='#bf7f7f7f', error='#bf7f0000', padding=4, width=1, radius=4),
         )
         self.Proxy: Proxy | None
         self.setZValue(1)
@@ -142,7 +150,7 @@ class Item(QGraphicsItem, Stateful):
         r = self._state['border']['radius']
         rect = self.boundingRect()
         path.addRoundedRect(rect, r, r)
-        painter.setPen(get_pen(self._state['border']['color'], mult * self._state['border']['width']))
+        painter.setPen(get_pen(self._state['border']['error' if self.widget().errored() else 'color'], mult * self._state['border']['width']))
         painter.setBrush(get_brush(self._state['background']['color']))
         painter.drawPath(path)
 

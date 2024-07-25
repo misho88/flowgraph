@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (
     QGraphicsScene, QGroupBox, QSlider, QDoubleSpinBox, QSpinBox, QTextEdit, QPlainTextEdit, QErrorMessage, QMessageBox, QSizeGrip
 )
 from PyQt5.QtGui import QKeySequence, QColor, QPainter, QPainterPath, QPen, QBrush, QMouseEvent, QWheelEvent, QKeyEvent, QCursor, QContextMenuEvent, QTransform, QFont, QFontMetrics, QClipboard
-from PyQt5.QtCore import pyqtSignal, Qt, QRect, QRectF, QPoint, QPointF, QObject
+from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt, QRect, QRectF, QPoint, QPointF, QObject
 from functools import cache
 from funcpipes import Pipe
 from debug import debug
