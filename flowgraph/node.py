@@ -2,7 +2,11 @@ __all__ = 'Item',
 
 
 from debug import debug
-from .backend import Qt, QPainter, QRectF, get_pen, get_brush, QMenu, QGraphicsItem, QPainterPath, QGraphicsProxyWidget, QGroupBox, QVBoxLayout, QPointF, QContextMenuEvent, QKeySequence, populate_menu, with_error_message
+from .backend import (
+    Qt, QPainter, QRectF, get_pen, get_brush, QMenu, QGraphicsItem, QGraphicsWidget, QPainterPath, QGraphicsProxyWidget, QGroupBox,
+    QVBoxLayout, QPointF, QContextMenuEvent, QKeySequence, populate_menu, with_error_message, QMouseEvent,
+    QApplication, widgets_at
+)
 from typing import Any
 from .entry import Entry
 from .util import get_static_object_from_state, ignore_args
@@ -62,6 +66,11 @@ class Widget(QGroupBox, Stateful):
         for entry in self.entries():
             if entry.output().isVisible():
                 yield entry
+
+    def mousePressEvent(self, event: QMouseEvent):
+        if any(entry.underMouse() for entry in self.entries()):
+            return
+        super().mousePressEvent(event)
 
     def contextMenuEvent(self, event: QContextMenuEvent) -> None:
         #w = QApplication.instance().widgetAt(event.globalX(), event.globalY())

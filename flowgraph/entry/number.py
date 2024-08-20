@@ -21,6 +21,11 @@ class Number(Entry):
     def setValue(self, value):  # NOTE: CRITICAL FOR SERIALIZATION
         return super().setValue(value)
 
+    def setValueSilently(self, value):  # NOTE: CRITICAL FOR SERIALIZATION
+        prev = self.blockSignals(True)
+        self.setValue(value)
+        self.blockSignals(prev)
+
     def addCallback(self, callback):
         super().addCallback(callback)
         self.valueChanged.connect(callback)
@@ -64,6 +69,9 @@ class Number(Entry):
         raise NotImplementedError(type(self))
 
     def setSingleStep(self, value):
+        raise NotImplementedError(type(self))
+
+    def blockSignals(self, value):
         raise NotImplementedError(type(self))
 
     @property

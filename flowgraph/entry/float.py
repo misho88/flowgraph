@@ -2,6 +2,7 @@ __all__ = 'Float',
 
 from ..backend import QDoubleSpinBox
 from .number import Number
+from debug import debug
 
 
 class Float(QDoubleSpinBox, Number):
@@ -20,4 +21,6 @@ class Float(QDoubleSpinBox, Number):
         for key, value in (state.items() if isinstance(state, dict) else state):
             if key == 'decimals':
                 self.setDecimals(value)
+            else:
+                rest[key] = value
         return super().setState(rest, parent=parent)

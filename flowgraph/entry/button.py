@@ -1,7 +1,8 @@
 __all__ = 'Button', 'ToggleButton'
 
-from ..backend import QPushButton
+from ..backend import QPushButton, with_error_message
 from .entry import Entry
+from itertools import repeat
 
 
 class Button(QPushButton, Entry):
@@ -28,6 +29,9 @@ class Button(QPushButton, Entry):
         return self._value
 
     def setValue(self, value):
+        self.setValueSilently(value)  # FIXME: should this emit something??
+
+    def setValueSilently(self, value):
         self._value = value
 
     def addCallback(self, callback):

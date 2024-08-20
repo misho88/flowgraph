@@ -19,6 +19,11 @@ class Str(QLineEdit, Entry):
     def setValue(self, value: str):
         return self.setText(value)
 
+    def setValueSilently(self, value: str):
+        prev = self.blockSignals(True)
+        self.setValue(value)
+        self.blockSignals(prev)
+
     def addCallback(self, callback):
         super().addCallback(callback)
         self.textChanged.connect(callback)

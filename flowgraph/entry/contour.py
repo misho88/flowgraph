@@ -1,20 +1,25 @@
-__all__ = 'Plot',
+__all__ = 'Contour',
 
 from .entry import Entry
 from ..backend import pyqtSignal
-from pyqtgraph import PlotWidget
+from pyqtgraph import PlotWidget, ScatterPlotItem, ImageView
+from pyqtgraph.widgets.MatplotlibWidget import MatplotlibWidget
+import matplotlib.pyplot as plt
 from debug import debug
 from pandas import DataFrame
 
 
-class Plot(PlotWidget, Entry):
+class Contour(MatplotlibWidget, Entry):
     valueChanged = pyqtSignal(object)
 
     def __init__(self, name=None, callback=None, default=None):
         super().__init__()
+
+        fig = self.getFigure()
+        fig.set_size_inches(3.5, 3.5 * 3 / 4)
+
         #self.enableMouse()
         Entry.__init__(self, name, callback, default)
-        self.traces = []
 
     def setReadOnly(self, value):
         pass
@@ -36,18 +41,26 @@ class Plot(PlotWidget, Entry):
 
         self._value = value
 
-        x = value.index.to_numpy()
-        n = len(value.columns)
+        fig = self.getFigure()
+        fig.clf()
+        ax = fig.add_subplot(111)
 
-        while len(self.traces) < n:
-            self.traces.append(self.plot())
+        if isinstance(value, dict):
+            for k, v in value.items():
+                if k == 'value':
+                    X, Y, Z = v
+                else:
+                    getattr(ax, f'set_{k}')(v)
+        else:
+            X, Y, Z = value
 
-        while len(self.traces) > n:
-            self.removeItem(self.traces.pop())
+        cntr = ax.contourf(X, Y, Z, cmap='plasma')
+        plt.colorbar(cntr)
 
-        for trace, column in zip(self.traces, value.columns):
-            y = value[column].to_numpy()
-            trace.setData(x, y)
+        ax.add_artist(plt.Circle((0, 0), 1, fill=False, color='gray'))
+
+        self.canvas.draw()
+        self.canvas.flush_events()
 
     def addCallback(self, callback):
         super().addCallback(callback)
@@ -56,3 +69,4 @@ class Plot(PlotWidget, Entry):
     def removeCallback(self, callback):
         super().removeCallback(callback)
         self.valueChanged.disconnect(callback)
+

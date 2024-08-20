@@ -2,8 +2,8 @@ from PyQt5.QtWidgets import (
     QApplication, QMainWindow,
     QVBoxLayout, QHBoxLayout, QBoxLayout, QLayout, QGridLayout,
     QWidget,
-    QLabel, QLineEdit, QFileDialog, QPushButton,
-    QGraphicsView, QGraphicsItem, QGraphicsTextItem, QGraphicsSceneMouseEvent, QGraphicsProxyWidget, QGraphicsSceneContextMenuEvent,
+    QLabel, QLineEdit, QFileDialog, QPushButton, QCheckBox,
+    QGraphicsView, QGraphicsItem, QGraphicsWidget, QGraphicsTextItem, QGraphicsSceneMouseEvent, QGraphicsProxyWidget, QGraphicsSceneContextMenuEvent,
     QMenu, QAction, QFrame,
     QGraphicsScene, QGroupBox, QSlider, QDoubleSpinBox, QSpinBox, QTextEdit, QPlainTextEdit, QErrorMessage, QMessageBox, QSizeGrip
 )
@@ -12,6 +12,7 @@ from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt, QRect, QRectF, QPoint, QPoint
 from functools import cache
 from funcpipes import Pipe
 from debug import debug
+from contextlib import contextmanager
 
 
 @cache
@@ -60,14 +61,50 @@ def traceback_message(e, info=None):
 @Pipe
 def with_error_message(func, parent=None):
     from functools import wraps
-    from debug import debug
 
     @wraps(func)
     def call(*args, **kwargs):
-        debug(args, kwargs)
         try:
             return func(*args, **kwargs)
         except Exception as e:
             traceback_message(e)
 
     return call
+
+
+def widgets_at(pos):
+    """Return ALL widgets at `pos`
+
+    Arguments:
+        pos (QPoint): Position at which to get widgets
+
+    """
+
+    qApp = QApplication.instance()
+    assert qApp is not None
+
+    widgets = []
+    widget_at = qApp.widgetAt(pos)
+
+    while widget_at:
+        widgets.append(widget_at)
+
+        # Make widget invisible to further enquiries
+        widget_at.setAttribute(Qt.WA_TransparentForMouseEvents)
+
+        widget_at = qApp.widgetAt(pos)
+
+    # Restore attribute
+    for widget in widgets:
+        widget.setAttribute(Qt.WA_TransparentForMouseEvents, False)
+
+    return widgets
+
+
+@contextmanager
+def blocked_signals(obj):
+    prev = obj.blockSignals(True)
+    try:
+        yield obj
+    finally:
+        obj.blockSignals(prev)

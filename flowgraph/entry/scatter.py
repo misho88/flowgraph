@@ -1,13 +1,14 @@
-__all__ = 'Plot',
+__all__ = 'Scatter',
 
 from .entry import Entry
 from ..backend import pyqtSignal
-from pyqtgraph import PlotWidget
+from pyqtgraph import PlotWidget, ScatterPlotItem
 from debug import debug
 from pandas import DataFrame
+import numpy as np
 
 
-class Plot(PlotWidget, Entry):
+class Scatter(PlotWidget, Entry):
     valueChanged = pyqtSignal(object)
 
     def __init__(self, name=None, callback=None, default=None):
@@ -36,17 +37,26 @@ class Plot(PlotWidget, Entry):
 
         self._value = value
 
-        x = value.index.to_numpy()
-        n = len(value.columns)
+        if isinstance(value, np.ndarray):
+            if value.dtype == complex:
+                x, y = value.real, value.imag
+            else:
+                x, y = value
+        else:
+            col, = value.columns
+            x = value.index.to_numpy()
+            y = value[col].to_numpy()
 
+        n = 1
         while len(self.traces) < n:
-            self.traces.append(self.plot())
+            item = ScatterPlotItem()
+            self.addItem(item)
+            self.traces.append(item)
 
         while len(self.traces) > n:
             self.removeItem(self.traces.pop())
 
-        for trace, column in zip(self.traces, value.columns):
-            y = value[column].to_numpy()
+        for trace in self.traces:
             trace.setData(x, y)
 
     def addCallback(self, callback):

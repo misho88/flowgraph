@@ -7,5 +7,8 @@ from .generic import Generic
 from .str import Str
 from .int import Int
 from .float import Float
+from .bool import Bool
 from .button import Button, ToggleButton
 from .plot import Plot
+from .scatter import Scatter
+from .contour import Contour

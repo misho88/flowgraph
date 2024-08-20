@@ -4,16 +4,12 @@ __all__ = 'Widget',
 from debug import debug
 from . import node, entry
 from .constrained import ClampedInt, ClampedFloat
+from .plottable import Plottable
 from .backend import QContextMenuEvent, populate_menu, with_error_message, pyqtSlot, pyqtSignal
 from inspect import signature, Parameter
-from .util import get_static_object_from_state, static_object_state, split_at, ignore_args
+from .util import get_static_object_from_state, static_object_state, split_at, ignore_args, wraps
 from funcpipes import nothing
 
-try:
-    from pandas import DataFrame  # type: ignore
-except ImportError:
-    class DataFrame:
-        pass
 
 
 def default(param: Parameter):
@@ -23,6 +19,16 @@ def default(param: Parameter):
 def cast(param: Parameter):
     anno = param.annotation
     return anno if anno and anno != Parameter.empty else lambda x: x
+
+
+def try_to(f):
+    @wraps(f)
+    def do_f(x):
+        try:
+            return f(x)
+        except:
+            return x
+    return do_f
 
 
 class Widget(node.Widget):
@@ -98,7 +104,7 @@ class Widget(node.Widget):
             assert len(arg_entries) == len(self.signature.parameters), f'{arg_entries} != {self.signature.parameters}'
 
             args = [
-                cast(param)(arg_entry.value())
+                try_to(cast(param))(arg_entry.value())
                 for arg_entry, param in zip(arg_entries, self.signature.parameters.values())
             ]
             results = self.func(*args)
@@ -106,12 +112,18 @@ class Widget(node.Widget):
                 debug('got nothing')
                 return
 
+            for a, e in zip(args, arg_entries):
+                e.setValueSilentlyIfDifferent(a)
+
             for e in action_entries:
                 e.setValue(results)
 
             if self.n_returns == 1:
                 return_entries[0].setValue(results)
                 return results
+
+            if results is None:
+                results = ()
 
             assert len(return_entries) == len(results), (return_entries, results)
             for return_entry, result in zip(return_entries, results):
@@ -127,6 +139,11 @@ class Widget(node.Widget):
         spec = param.annotation
         name = param.name
         callback = None if output else self.eval
+        assert isinstance(spec, type), (name, spec)
+
+        if issubclass(spec, bool):
+            return entry.Bool(name, callback, default(param) or False)
+
         if issubclass(spec, ClampedInt):
             return entry.Int(
                 name, callback, default(param) or 0,
@@ -141,11 +158,19 @@ class Widget(node.Widget):
             return entry.Int(name, callback, default(param) or 0)
         if issubclass(spec, float):
             return entry.Float(name, callback, default(param) or 0.0)
+
         if issubclass(spec, str):
             return entry.Str(name, callback, default(param) or '')
-        if issubclass(spec, DataFrame):
-            return entry.Plot(name, callback, default(param) or None)
-        return entry.Generic(name, callback, default(param) or None)
+
+        if issubclass(spec, Plottable):
+            if spec.kind == 'plot':
+                return entry.Plot(name, callback, default(param) or None)
+            if spec.kind == 'scatter':
+                return entry.Scatter(name, callback, default(param) or None)
+            if spec.kind == 'contour':
+                return entry.Contour(name, callback, default(param) or None)
+
+        return entry.Generic(name, callback, default(param))
 
     def iterState(self):
         yield from super().iterState()
@@ -174,7 +199,8 @@ class Widget(node.Widget):
         self.setFunction(self.func)
 
     def contextMenuEvent(self, event: QContextMenuEvent) -> None:
-        Menu(self).exec(event.globalPos())
+        ...
+        #Menu(self).exec(event.globalPos())
 
     def removeAllEntries(self):
         super().removeAllEntries()

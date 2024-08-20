@@ -1,7 +1,7 @@
 __all__ = 'View',
 
 from debug import debug
-from . import node, function, socket, edge
+from . import node, function, socket, edge, entry
 from .backend import Qt, QGraphicsView, QGraphicsScene, QPainter, QRectF, QWheelEvent, QFrame, QContextMenuEvent, QMenu, QApplication, QWidget, QTransform, populate_menu, QKeySequence, with_error_message, get_brush
 from .util import partial, ignore_args, get_static_object_from_state
 from .stateful import Stateful
@@ -176,6 +176,17 @@ class View(QGraphicsView, Stateful):
         self.setAcceptDrops(True)
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.DefaultContextMenu)
         self.functions = []
+
+        self._entry_types: dict[str, entry.Entry] = {
+            name: attr
+            for name, attr in vars(entry).items()
+            if isinstance(attr, type) and issubclass(attr, entry.Entry) and attr is not entry.Entry
+        }
+
+    def registerEntryType(self, Entry):
+        if not isinstance(Entry, entry.Entry):
+            raise ValueError(f'{Entry=} must be a subclass of entry.Entry')
+        self._entry_types[Entry.__name__] = Entry
 
     def scene(self) -> Scene:
         scene = super().scene()

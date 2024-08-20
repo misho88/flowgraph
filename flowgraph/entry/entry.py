@@ -56,6 +56,17 @@ class Entry(Stateful):
     def setValue(self, value):
         raise NotImplementedError(type(self))
 
+    def setValueSilently(self, value):
+        raise NotImplementedError(type(self))
+
+    def setValueIfDifferent(self, value):
+        if self.value() != value:
+            self.setValue(value)
+
+    def setValueSilentlyIfDifferent(self, value):
+        if self.value() != value:
+            self.setValueSilently(value)
+
     def parent(self):
         raise NotImplementedError(type(self))
 
@@ -96,7 +107,8 @@ class Entry(Stateful):
             yield 'name', self.name()
         yield 'input', self.input().state()
         yield 'output', self.output().state()
-        yield 'value', b64encode(dumps(self.value())).decode()
+        if self.value() is not None:
+            yield 'value', b64encode(dumps(self.value())).decode()
         yield 'callbacks', [ object_state(callback) for callback in self.callbacks() ]
 
     def setState(self, state, parent=None, missing='error'):
@@ -117,7 +129,8 @@ class Entry(Stateful):
                     try:
                         self.addCallback(get_object_from_state(callback_state, parent))
                     except TypeError as e:
-                        debug(f'skipping callback: {e}')
+                        pass
+                        #debug(f'skipping callback: {e}')
             elif missing == 'error':
                 raise KeyError(key)
             elif missing == 'return':

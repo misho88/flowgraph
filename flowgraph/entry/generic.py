@@ -2,6 +2,7 @@ __all__ = 'Generic',
 
 from .entry import Entry
 from ..backend import QTextEdit, pyqtSignal, QFontMetrics
+from debug import debug
 
 
 class Generic(QTextEdit, Entry):
@@ -23,9 +24,14 @@ class Generic(QTextEdit, Entry):
         return self._value
 
     def setValue(self, value):
-        self._value = value
-        self.setText(str(value) if value is not None else '')
+        self.setValueSilently(value)
         self.valueChanged.emit(value)
+
+    def setValueSilently(self, value):
+        self._value = value
+        prev = self.blockSignals(True)
+        self.setText(str(value) if value is not None else '')
+        self.blockSignals(prev)
 
     def addCallback(self, callback):
         super().addCallback(callback)
