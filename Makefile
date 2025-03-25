@@ -9,3 +9,6 @@ install: uninstall
 
 uninstall:
 	rm -rf $(PYTHON_SITE)/$(MODULE)
+
+pull:
+	git pull
