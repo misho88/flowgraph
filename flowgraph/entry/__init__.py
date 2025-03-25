@@ -5,6 +5,7 @@ from .number import Number
 
 from .generic import Generic
 from .str import Str
+from .combo import Combo
 from .int import Int
 from .float import Float
 from .bool import Bool

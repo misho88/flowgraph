@@ -3,7 +3,7 @@ __all__ = 'Widget',
 
 from debug import debug
 from . import node, entry
-from .constrained import ClampedInt, ClampedFloat
+from .constrained import ClampedInt, ClampedFloat, OptionedStr
 from .plottable import Plottable
 from .backend import QContextMenuEvent, populate_menu, with_error_message, pyqtSlot, pyqtSignal
 from inspect import signature, Parameter
@@ -159,6 +159,8 @@ class Widget(node.Widget):
         if issubclass(spec, float):
             return entry.Float(name, callback, default(param) or 0.0)
 
+        if issubclass(spec, OptionedStr):
+            return entry.Combo(name, callback, default(param) or '', spec.spec)
         if issubclass(spec, str):
             return entry.Str(name, callback, default(param) or '')
 
